@@ -90,7 +90,7 @@ class Model(torch.nn.Module):
 
     self.lin0 = nn.Linear(in_channels, hidden_channels)
     self.gat = nn.GATv2Conv(in_channels=hidden_channels, out_channels=hidden_channels, heads=heads_nb)
-    self.lin1 = nn.Linear(num_nodes * hidden_channels*heads_nb, num_nodes * hidden_channels)
+    self.lin1 = nn.Linear(num_nodes * hidden_channels * heads_nb, num_nodes * hidden_channels)
     self.lin2 = nn.Linear(num_nodes * hidden_channels, hidden_channels)
     self.lin3 = nn.Linear(hidden_channels, out_channels)
 
@@ -138,7 +138,7 @@ model.to(device)
 model.train()
 
 data_size = 1e7
-batch_size = 1000
+batch_size = 1024
 num_epochs = 2
 losses = []
 accs = []
@@ -157,7 +157,6 @@ for epoch in range(num_epochs):
         batch_acc = 0.
 
         for i, line in enumerate(f):
-            #print(i)
             line = load(line)
             g = line_to_graph(line).to(device)
 
@@ -165,10 +164,10 @@ for epoch in range(num_epochs):
 
             loss = criterion(output, g.y)
 
-            if torch.argmax(g.y) == 0:
-                num_zeros += 1
-            else:
+            if torch.argmax(g.y):
                 num_ones += 1
+            else:
+                num_zeros += 1
 
             batch_loss += loss/batch_size
             batch_acc += (torch.argmax(output) == torch.argmax(g.y)).detach().item() /batch_size
