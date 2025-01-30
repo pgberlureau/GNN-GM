@@ -1,0 +1,21 @@
+name: gnn-gm
+channels:
+  - pytorch
+  - nvidia
+  - pyg
+  - conda-forge
+dependencies:
+  - python=3.12
+  - numpy
+  - scipy
+  - pandas
+  - matplotlib
+  - pytorch
+  - torchvision
+  - torchaudio
+  - pytorch-cuda
+  - pyg
+  - tensorboard
+  - chess
+  - jupyter
+  - tqdm
