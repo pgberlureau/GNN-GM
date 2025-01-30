@@ -1,9 +1,12 @@
+import argparse
+from pathlib import Path
+
 from torch_geometric import nn
 from torch_geometric.loader import DataLoader
 import torch
 from tqdm import tqdm
 
-from dataset import GraphChessDataset
+from dataset import GraphChessDataset, build_train_test_dataset
 
 
 # 10 epoch | 100_000 20min
@@ -57,9 +60,21 @@ def centipawn_transform(cp: torch.int16) -> torch.Tensor:
     return res
 
 
-def train(root, num_epochs, batch_size, load_workers):
-    train_dataset = GraphChessDataset(root, cp_transform=centipawn_transform)
+def train(root: str, dataset_size: int, num_epochs: int, batch_size: int, load_workers: int, model_save: str):
+    model_save = Path(model_save)
+
+    # concat_x controls how the x field is concatenated by TorchGeometric.
+    # Use False to create a new axis for the concatenation.
+
+    # cp_transform controls how the centipawn data is transformed. If not present, it is a torch.int16 integer.
+    train_dataset, test_dataset = build_train_test_dataset(root, dataset_size,
+                                                           cp_transform=centipawn_transform, concat_x=True)
+
+    # load_workers controls how many process are used to load the data in the background.
+    # More process can be make the loading quicker if the CPU is the bottleneck
+
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=load_workers)
+    test_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=load_workers)
 
     nb_batch = len(train_dataset) // batch_size
 
@@ -89,18 +104,24 @@ def train(root, num_epochs, batch_size, load_workers):
 
             optimizer.step()
 
-        # losses.append(epoch_loss)
-        # accs.append(epoch_acc)
-
-    torch.save(model.state_dict(), 'model.pth')
-
-    # fig, ax = plt.subplots(2)
-    # ax[0].plot(losses)
-    # ax[0].set_title('Losses')
-    # ax[1].plot(accs)
-    # ax[1].set_title('Accuracies')
-    # plt.savefig('losses.png')
+    torch.save(model.state_dict(), model_save)
 
 
 if __name__ == '__main__':
-    train("/media/gabriel/Chess/out", 20, 16, 4)
+    parser = argparse.ArgumentParser(description="Train the chess model.")
+
+    parser.add_argument("--dataset_size", type=int, required=True, help="Size of the dataset to use.")
+    parser.add_argument("--num_epochs", type=int, required=True, help="Number of training epochs.")
+    parser.add_argument("--batch_size", type=int, required=True, help="Batch size for training.")
+    parser.add_argument("--load_workers", type=int, required=True, help="Number of data loading workers.")
+    parser.add_argument("--model_save", type=Path, required=True, help="Path to save the trained model.")
+    parser.add_argument("root", type=Path,  help="Root directory of the dataset.")
+
+    args = parser.parse_args()
+
+    save_path = args.model_save
+
+    if not save_path.exists():
+        save_path.touch()
+
+    train(args.root, args.dataset_size, args.num_epochs, args.batch_size, args.load_workers, args.model_save)
