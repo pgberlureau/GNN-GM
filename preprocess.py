@@ -28,39 +28,42 @@ def process_file(lichess_dataset: Path, out_dataset: Path, dataset_size: int, ch
     node_out.mkdir(parents=True)
     edges_out.mkdir(parents=True)
 
-    with Pool(processes=nb_process) as pool:
-        cp_buf = np.zeros(dataset_size, dtype=np.int16)
+    with tqdm(total=dataset_size - 1) as pbar:
+        with Pool(processes=nb_process) as pool:
+            cp_buf = np.zeros(dataset_size, dtype=np.int16)
 
-        it = pool.imap_unordered(process, in_f, chunksize=100)
+            it = pool.imap_unordered(process, in_f, chunksize=100)
 
-        i = 0
+            i = 0
+            for data_list in it:
+                for nodes, edges, cp in data_list:
+                    sub_dir = f"{i % 255:02x}"
 
-        for nodes_list, edges_list, cp_list in tqdm(it, total=dataset_size - 1):
-            for nodes, edges, cp in zip(nodes_list, edges_list, cp_list):
-                sub_dir = f"{i % 255:02x}"
+                    (node_out / sub_dir).mkdir(parents=True, exist_ok=True)
+                    (edges_out / sub_dir).mkdir(parents=True, exist_ok=True)
 
-                (node_out / sub_dir).mkdir(parents=True, exist_ok=True)
-                (edges_out / sub_dir).mkdir(parents=True, exist_ok=True)
+                    np.save(node_out / sub_dir / f"nodes_{i}", nodes)
+                    np.save(edges_out / sub_dir / f"edges_{i}", edges)
 
-                np.save(node_out / sub_dir / f"nodes_{i}", nodes)
-                np.save(edges_out / sub_dir / f"edges_{i}", edges)
+                    cp_buf[i] = cp
 
-                cp_buf[i] = cp
+                    if i >= dataset_size - 1:
+                        np.save(out_dataset / "cp", cp_buf)
 
-                if i >= dataset_size - 1:
-                    break
-                i += 1
+                        in_f.close()
 
-    np.save(out_dataset / "cp", cp_buf)
+                        dataset_info = {"size": dataset_size, "chunk_size": chunk_size, "edges_dir": EDGES_PATH,
+                                        "nodes_dir": NODE_PATH}
+                        with (out_dataset / "dataset.json").open('w') as f:
+                            json.dump(dataset_info, f)
 
-    in_f.close()
+                        return
 
-    dataset_info = {"size": dataset_size, "chunk_size": chunk_size, "edges_dir": EDGES_PATH, "nodes_dir": NODE_PATH}
-    with (out_dataset / "dataset.json").open('w') as f:
-        json.dump(dataset_info, f)
+                    pbar.update()
+                    i += 1
 
 
-def process(line: str) -> [np.ndarray, np.ndarray, int]:
+def process(line: str) -> [(np.ndarray, np.ndarray, int)]:
     data = json.loads(line)
     pvs = data['evals'][0]['pvs'][0]
 
@@ -80,7 +83,7 @@ def process(line: str) -> [np.ndarray, np.ndarray, int]:
     else:
         cp = pvs['cp']
 
-    return [node1, node2], [edges_list, edges_list], [cp, -cp]
+    return [(node1, edges_list, cp), (node2, edges_list, -cp)]
 
 
 def embedding(board: chess.Board) -> np.ndarray:
