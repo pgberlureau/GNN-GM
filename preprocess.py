@@ -1,8 +1,10 @@
 import json
+import shutil
 from multiprocessing import Pool
 
 import chess
 import numpy as np
+import torch
 from tqdm import tqdm
 import argparse
 from pathlib import Path
@@ -10,46 +12,58 @@ from pathlib import Path
 # Values: PAWN: 1, KNIGHT: 3, BISHOP: 3, ROOK: 5, QUEEN: 9, KING: 255
 PIECE_VALUES = np.asarray([1, 3, 3, 5, 9, 255], dtype=np.uint8)
 
+NODE_PATH = "nodes"
+EDGES_PATH = "edges"
 
-def process_file(lichess_dataset: Path, out_dataset: Path, dataset_size: int, chunk_size: int):
+
+def process_file(lichess_dataset: Path, out_dataset: Path, dataset_size: int, chunk_size: int, nb_process: int):
     in_f = lichess_dataset.open('r')
 
-    with Pool(processes=1) as pool:
-        nodes_buf, edges_buf, cp_buf = {}, {}, []
+    node_out = out_dataset / NODE_PATH
+    edges_out = out_dataset / EDGES_PATH
 
-        last_flush = None
-        chunk_id = 0
+    node_out.mkdir(parents=True)
+    edges_out.mkdir(parents=True)
+
+    with Pool(processes=nb_process) as pool:
+        cp_buf = np.zeros(dataset_size, dtype=np.int16)
+
+        nodes_buf, edges_buf = {}, {}
+        current_chunk_id = 0
 
         it = pool.imap_unordered(process, in_f, chunksize=100)
 
-        for i, (nodes, edges, cp) in tqdm(enumerate(it), total=dataset_size):
-            nodes_buf[f"node_{i}"] = nodes
-            edges_buf[f"edges_{i}"] = edges
+        for i, (nodes, edges, cp) in tqdm(enumerate(it), total=dataset_size - 1):
+            chunk_id = i // chunk_size
+            id_in_chunk = i % chunk_size
 
-            cp_buf.append(cp)
-
-            if (last_flush is None and i >= chunk_size - 1) or (
-                    last_flush is not None and i - last_flush >= chunk_size):
-                print(f"\nFlushing chunk {chunk_id}")
-                np.savez(out_dataset / f"nodes_{chunk_id}", **nodes_buf)
-                np.savez(out_dataset / f"edges_{chunk_id}", **edges_buf)
+            if chunk_id != current_chunk_id:
+                print(f"\nFlushing chunk {current_chunk_id}")
+                np.savez(node_out / f"nodes_{current_chunk_id}", **nodes_buf)
+                np.savez(edges_out / f"edges_{current_chunk_id}", **edges_buf)
 
                 nodes_buf = {}
                 edges_buf = {}
-                last_flush = i
-                chunk_id += 1
+                current_chunk_id += 1
+
+            cp_buf[i] = cp
+
+            nodes_buf[f"node_{id_in_chunk}"] = nodes
+            edges_buf[f"edges_{id_in_chunk}"] = edges
 
             if i >= dataset_size - 1:
                 break
 
-    np.savez(out_dataset / f"nodes_{chunk_id}", **nodes_buf)
-    np.savez(out_dataset / f"edges_{chunk_id}", **edges_buf)
+    np.savez(node_out / f"nodes_{current_chunk_id}", **nodes_buf)
+    np.savez(edges_out / f"edges_{current_chunk_id}", **edges_buf)
 
     np.save(out_dataset / "cp", cp_buf)
 
     in_f.close()
+
+    dataset_info = {"size": dataset_size, "chunk_size": chunk_size, "edges_dir": EDGES_PATH, "nodes_dir": NODE_PATH}
     with (out_dataset / "dataset.json").open('w') as f:
-        json.dump({"nb_chunk": chunk_id, "size": dataset_size, "chunk_size": chunk_size}, f)
+        json.dump(dataset_info, f)
 
 
 def process(line: str) -> (np.ndarray, np.ndarray, int):
@@ -142,6 +156,12 @@ def main():
         required=True,
         help="Maximum number of lines to process.",
     )
+    parser.add_argument(
+        "--process",
+        type=int,
+        default=4,
+        help="Number of process.",
+    )
 
     args = parser.parse_args()
 
@@ -149,14 +169,18 @@ def main():
     output_dir = args.output_directory
     size = args.size
     chunk_size = args.chunk_size
+    process = args.process
 
     if not lichess_file.exists():
         raise FileNotFoundError(f"Lichess file not found: {lichess_file}")
 
+    if output_dir.exists():
+        shutil.rmtree(output_dir)
+
     output_dir.mkdir(parents=True, exist_ok=True)
 
     try:
-        process_file(lichess_file, output_dir, size, chunk_size)
+        process_file(lichess_file, output_dir, size, chunk_size, process)
         print(f"Processing complete. Results saved to: {output_dir}")
     except Exception as e:
         print(f"An error occurred during processing: {e}")
