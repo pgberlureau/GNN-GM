@@ -1,4 +1,6 @@
 import argparse
+import json
+import zipfile
 from datetime import datetime
 from pathlib import Path
 
@@ -145,10 +147,7 @@ def test(model, criterion, test_dataloader, device):
 
 
 def train(root: str, dataset_size: int, num_epochs: int, batch_size: int, load_workers: int, out_dir: str, gnn: bool):
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     model_type = "gnn" if gnn else "mlp"
-    out_path = Path(out_dir) / f"{model_type}_{timestamp}"
-    out_path.mkdir(exist_ok=False)
 
     # concat_x controls how the x field is concatenated by TorchGeometric.
     # Use False to create a new axis for the concatenation.
@@ -244,6 +243,11 @@ def train(root: str, dataset_size: int, num_epochs: int, batch_size: int, load_w
         print(f"Test Loss: {test_loss:.4f}, Test Accuracy: {test_accuracy:.4f}, "
               f"Test Precision: {test_precision:.4f}, Test Recall: {test_recall:.4f}")
 
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    out_path = Path(out_dir) / f"{model_type}_{timestamp}"
+    out_path.mkdir(exist_ok=False)
+
     torch.save(model.state_dict(), out_path / "model.pth")
 
     plot_metrics(out_path, num_epochs, model_type, train_loss_list, train_accuracy_list, train_precision_list,
@@ -253,6 +257,26 @@ def train(root: str, dataset_size: int, num_epochs: int, batch_size: int, load_w
     np.savez(out_path / "stats", train_loss=train_loss_list, train_accuracy=train_accuracy_list,
              train_precision=train_precision_list, train_recall=train_recall_list, test_loss=test_loss_list,
              test_accuracy=test_accuracy_list, test_precision=test_precision_list, test_recall=test_recall_list)
+
+    params = {'dataset_size': dataset_size, 'num_epochs': num_epochs, 'batch_size': batch_size,
+              'load_workers': load_workers, 'model_type': model_type}
+
+    with (out_path / "params.json").open('w') as f:
+        json.dump(params, f)
+
+    zip_filename = "results.zip"
+    with zipfile.ZipFile(out_path / zip_filename, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        zipf.write(str(out_path / "model.pth"), arcname="model.pth")
+        zipf.write(str(out_path / "stats.npz"), arcname="stats.npz")
+        zipf.write(str(out_path / "params.json"), arcname="params.json")
+
+        zipf.write(str(out_path / "train_loss.png"), arcname="train_loss.png")
+        zipf.write(str(out_path / "train.png"), arcname="train.png")
+        zipf.write(str(out_path / "test_loss.png"), arcname="test_loss.png")
+        zipf.write(str(out_path / "test.png"), arcname="test.png")
+
+    print()
+    print(f"Results zipped to {out_path / zip_filename}")
 
 
 if __name__ == '__main__':
