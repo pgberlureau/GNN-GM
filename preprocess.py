@@ -19,7 +19,7 @@ CHESS_NB_CASE = 64
 CHESS_EMBEDDING_SIZE = 15
 
 
-def process_file(lichess_dataset: Path, out_dataset: Path, dataset_size: int, chunk_size: int, nb_process: int):
+def process_file(lichess_dataset: Path, out_dataset: Path, dataset_size: int, nb_process: int):
     in_f = lichess_dataset.open('r')
 
     node_out = out_dataset / NODE_PATH
@@ -52,8 +52,7 @@ def process_file(lichess_dataset: Path, out_dataset: Path, dataset_size: int, ch
 
                         in_f.close()
 
-                        dataset_info = {"size": dataset_size, "chunk_size": chunk_size, "edges_dir": EDGES_PATH,
-                                        "nodes_dir": NODE_PATH}
+                        dataset_info = {"size": dataset_size, "edges_dir": EDGES_PATH, "nodes_dir": NODE_PATH}
                         with (out_dataset / "dataset.json").open('w') as f:
                             json.dump(dataset_info, f)
 
@@ -151,22 +150,16 @@ def main():
         help="Path to the output directory.",
     )
     parser.add_argument(
-        "--chunk-size",
-        type=int,
-        default=100_000,
-        help="Number of lines to write in each chunk (default: 100 000).",
-    )
-    parser.add_argument(
         "--size",
         type=int,
         required=True,
-        help="Maximum number of lines to process.",
+        help="Final length of the Dataset.",
     )
     parser.add_argument(
         "--process",
         type=int,
-        default=4,
-        help="Number of process.",
+        default=2,
+        help="Number of reading process.",
     )
 
     args = parser.parse_args()
@@ -174,7 +167,6 @@ def main():
     lichess_file = args.lichess_file
     output_dir = args.output_directory
     size = args.size
-    chunk_size = args.chunk_size
     process = args.process
 
     if not lichess_file.exists():
@@ -189,7 +181,7 @@ def main():
     print("Processing...")
 
     try:
-        process_file(lichess_file, output_dir, size, chunk_size, process)
+        process_file(lichess_file, output_dir, size, process)
         print(f"Processing complete. Results saved to: {output_dir}")
     except Exception as e:
         print(f"An error occurred during processing: {e}")
