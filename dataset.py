@@ -41,22 +41,21 @@ class GraphChessDataset(Dataset):
     def len(self):
         return self._len
 
-    def _nodes_chunk(self, chunk_id):
-        return self._nodes_dir / f"nodes_{chunk_id}.npz"
+    def _subdir(self, idx):
+        return f"{idx % 255:02x}"
 
-    def _edges_chunk(self, chunk_id):
-        return self._edges_dir / f"edges_{chunk_id}.npz"
+    def _nodes_chunk(self, idx):
+        return self._nodes_dir / self._subdir(idx) / f"nodes_{idx}.npy"
+
+    def _edges_chunk(self, idx):
+        return self._edges_dir / self._subdir(idx) / f"edges_{idx}.npy"
 
     def get(self, idx):
         new_id = (idx + self._offset) if self._offset is not None else idx
-        chunk_id = new_id // self._chunk_size
-        chunk_index = new_id % self._chunk_size
 
-        nodes_chunk = np.load(self._nodes_chunk(chunk_id))
-        edges_chunk = np.load(self._edges_chunk(chunk_id))
-
-        node = torch.from_numpy(nodes_chunk[f"node_{chunk_index}"].astype(np.float32))
-        edges = torch.from_numpy(edges_chunk[f"edges_{chunk_index}"].astype(np.long))
+        node = torch.from_numpy(np.load(self._nodes_chunk(new_id)).astype(np.float32))
+        edges = torch.from_numpy(np.load(self._edges_chunk(new_id)).astype(np.long))
+        
         raw_cp = self._cp_data[new_id]
         cp = self._transform_cp(raw_cp) if self._transform_cp is not None else raw_cp
 

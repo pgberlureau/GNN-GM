@@ -15,6 +15,9 @@ PIECE_VALUES = np.asarray([1, 3, 3, 5, 9, 255], dtype=np.uint8)
 NODE_PATH = "nodes"
 EDGES_PATH = "edges"
 
+CHESS_NB_CASE = 64
+CHESS_EMBEDDING_SIZE = 15
+
 
 def process_file(lichess_dataset: Path, out_dataset: Path, dataset_size: int, chunk_size: int, nb_process: int):
     in_f = lichess_dataset.open('r')
@@ -28,34 +31,21 @@ def process_file(lichess_dataset: Path, out_dataset: Path, dataset_size: int, ch
     with Pool(processes=nb_process) as pool:
         cp_buf = np.zeros(dataset_size, dtype=np.int16)
 
-        nodes_buf, edges_buf = {}, {}
-        current_chunk_id = 0
-
         it = pool.imap_unordered(process, in_f, chunksize=100)
 
         for i, (nodes, edges, cp) in tqdm(enumerate(it), total=dataset_size - 1):
-            chunk_id = i // chunk_size
-            id_in_chunk = i % chunk_size
+            sub_dir = f"{i % 255:02x}"
 
-            if chunk_id != current_chunk_id:
-                print(f"\nFlushing chunk {current_chunk_id}")
-                np.savez(node_out / f"nodes_{current_chunk_id}", **nodes_buf)
-                np.savez(edges_out / f"edges_{current_chunk_id}", **edges_buf)
+            (node_out / sub_dir).mkdir(parents=True, exist_ok=True)
+            (edges_out / sub_dir).mkdir(parents=True, exist_ok=True)
 
-                nodes_buf = {}
-                edges_buf = {}
-                current_chunk_id += 1
+            np.save(node_out / sub_dir / f"nodes_{i}", nodes)
+            np.save(edges_out / sub_dir / f"edges_{i}", edges)
 
             cp_buf[i] = cp
 
-            nodes_buf[f"node_{id_in_chunk}"] = nodes
-            edges_buf[f"edges_{id_in_chunk}"] = edges
-
             if i >= dataset_size - 1:
                 break
-
-    np.savez(node_out / f"nodes_{current_chunk_id}", **nodes_buf)
-    np.savez(edges_out / f"edges_{current_chunk_id}", **edges_buf)
 
     np.save(out_dataset / "cp", cp_buf)
 
@@ -110,7 +100,7 @@ def embedding(board: chess.Board) -> np.ndarray:
     |   14  | En passant target square (-1 if none)                             |
     |-------|-------------------------------------------------------------------|
     """
-    nodes = np.zeros((64, 15), dtype=np.uint8)
+    nodes = np.zeros((CHESS_NB_CASE, CHESS_EMBEDDING_SIZE), dtype=np.uint8)
 
     for case, piece in board.piece_map().items():
         piece_type = piece.piece_type - 1  # PAWN: 0, KNIGHT: 1, BISHOP: 2, ROOK: 3, QUEEN: 4, KING: 5
