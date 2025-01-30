@@ -54,7 +54,7 @@ class GraphChessDataset(Dataset):
         new_id = (idx + self._offset) if self._offset is not None else idx
 
         node = torch.from_numpy(np.load(self._nodes_chunk(new_id)).astype(np.float32))
-        edges = torch.from_numpy(np.load(self._edges_chunk(new_id)).astype(np.long))
+        edges = torch.from_numpy(np.load(self._edges_chunk(new_id)).astype(np.int32))
         
         raw_cp = self._cp_data[new_id]
         cp = self._transform_cp(raw_cp) if self._transform_cp is not None else raw_cp

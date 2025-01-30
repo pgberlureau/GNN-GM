@@ -33,19 +33,23 @@ def process_file(lichess_dataset: Path, out_dataset: Path, dataset_size: int, ch
 
         it = pool.imap_unordered(process, in_f, chunksize=100)
 
-        for i, (nodes, edges, cp) in tqdm(enumerate(it), total=dataset_size - 1):
-            sub_dir = f"{i % 255:02x}"
+        i = 0
 
-            (node_out / sub_dir).mkdir(parents=True, exist_ok=True)
-            (edges_out / sub_dir).mkdir(parents=True, exist_ok=True)
+        for nodes_list, edges_list, cp_list in tqdm(it, total=dataset_size - 1):
+            for nodes, edges, cp in zip(nodes_list, edges_list, cp_list):
+                sub_dir = f"{i % 255:02x}"
 
-            np.save(node_out / sub_dir / f"nodes_{i}", nodes)
-            np.save(edges_out / sub_dir / f"edges_{i}", edges)
+                (node_out / sub_dir).mkdir(parents=True, exist_ok=True)
+                (edges_out / sub_dir).mkdir(parents=True, exist_ok=True)
 
-            cp_buf[i] = cp
+                np.save(node_out / sub_dir / f"nodes_{i}", nodes)
+                np.save(edges_out / sub_dir / f"edges_{i}", edges)
 
-            if i >= dataset_size - 1:
-                break
+                cp_buf[i] = cp
+
+                if i >= dataset_size - 1:
+                    break
+                i += 1
 
     np.save(out_dataset / "cp", cp_buf)
 
@@ -56,12 +60,13 @@ def process_file(lichess_dataset: Path, out_dataset: Path, dataset_size: int, ch
         json.dump(dataset_info, f)
 
 
-def process(line: str) -> (np.ndarray, np.ndarray, int):
+def process(line: str) -> [np.ndarray, np.ndarray, int]:
     data = json.loads(line)
     pvs = data['evals'][0]['pvs'][0]
 
     board = chess.Board(data['fen'])
-    nodes = embedding(board)
+    node1 = embedding(board)
+    node2 = invert_color(node1)
 
     moves = map(lambda move: [move.from_square, move.to_square], board.legal_moves)
     edges_list = np.fromiter(moves, dtype=np.dtype((np.uint8, 2))).T
@@ -75,7 +80,7 @@ def process(line: str) -> (np.ndarray, np.ndarray, int):
     else:
         cp = pvs['cp']
 
-    return nodes, edges_list, cp
+    return [node1, node2], [edges_list, edges_list], [cp, -cp]
 
 
 def embedding(board: chess.Board) -> np.ndarray:
@@ -107,9 +112,11 @@ def embedding(board: chess.Board) -> np.ndarray:
         piece_color = piece.color  # WHITE: True, BLACK: False
         piece_value = PIECE_VALUES[piece_type]
 
+        color_index = 7 + int(not piece_color)
+
         nodes[case, piece_type] = 1
         nodes[case, 6] = piece_value
-        nodes[case, 7 + (not piece_color)] = 1
+        nodes[case, color_index] = 1
 
     nodes[:, 9] = board.turn
     nodes[:, 10] = board.has_kingside_castling_rights(chess.WHITE)
@@ -119,6 +126,12 @@ def embedding(board: chess.Board) -> np.ndarray:
     nodes[:, 14] = 0xff if board.ep_square is None else board.ep_square
 
     return nodes
+
+
+def invert_color(node: np.ndarray) -> np.ndarray:
+    res = np.copy(node)
+    res[0, 7:9] = res[0, 8:6:-1]
+    return res
 
 
 def main():
@@ -165,9 +178,12 @@ def main():
         raise FileNotFoundError(f"Lichess file not found: {lichess_file}")
 
     if output_dir.exists():
+        print("Cleaning previous dataset...")
         shutil.rmtree(output_dir)
 
     output_dir.mkdir(parents=True, exist_ok=True)
+
+    print("Processing...")
 
     try:
         process_file(lichess_file, output_dir, size, chunk_size, process)

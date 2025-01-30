@@ -19,3 +19,4 @@ dependencies:
   - chess
   - jupyter
   - tqdm
+  - scikit-learn
