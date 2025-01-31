@@ -129,29 +129,24 @@ This section provides a comparative analysis of training and evaluation metrics 
 
 ### 10k Dataset
 
-| Metric | MLP (10k) | GNN (10k) |
+| Metric | Training | Test |
 |--------|----------|----------|
-| **Training Accuracy** | ![MLP 10k](results/10k_train_accuracy.png) | ![GNN 10k](results/10k_train_accuracy.png) |
-| **Training Loss** | ![MLP 10k](results/10k_train_loss.png) | ![GNN 10k](results/10k_train_loss.png) |
-| **Test Accuracy** | ![MLP 10k](results/10k_test_accuracy.png) | ![GNN 10k](results/10k_test_accuracy.png) |
-| **Test Loss** | ![MLP 10k](results/10k_test_loss.png) | ![GNN 10k](results/10k_test_loss.png) |
+| **Loss** | ![Train Loss](results/10k_train_loss.png) | ![Test Loss](results/10k_test_loss.png) |
+| **Accuracy** | ![Train Accuracy](results/10k_train_accuracy.png) | ![Test Accuracy](results/10k_test_accuracy.png) |
+
 
 ### 100k Dataset
 
-| Metric | MLP (100k) | GNN (100k) |
+| Metric | Training | Test |
 |--------|-----------|-----------|
-| **Training Accuracy** | ![MLP 100k](results/100k_train_accuracy.png) | ![GNN 100k](results/100k_train_accuracy.png) |
-| **Training Loss** | ![MLP 100k](results/100k_train_loss.png) | ![GNN 100k](results/100k_train_loss.png) |
-| **Test Accuracy** | ![MLP 100k](results/100k_test_accuracy.png) | ![GNN 100k](results/100k_test_accuracy.png) |
-| **Test Loss** | ![MLP 100k](results/100k_test_loss.png) | ![GNN 100k](results/100k_test_loss.png) |
+| **Loss** | ![Train Loss](results/100k_train_loss.png) | ![Test Loss](results/100k_test_loss.png) |
+| **Accuracy** | ![Train Accuracy](results/10k_train_accuracy.png) | ![Test Accuracy](results/100k_test_accuracy.png) |
 
 ### 1M Dataset
 
-| Metric | MLP (1M) | GNN (1M) |
-|--------|---------|---------|
-| **Training Accuracy** | ![MLP 1M](results/1M_train_accuracy.png) | ![GNN 1M](results/1M_train_accuracy.png) |
-| **Training Loss** | ![MLP 1M](results/1M_train_loss.png) | ![GNN 1M](results/1M_train_loss.png) |
-| **Test Accuracy** | ![MLP 1M](results/1M_test_accuracy.png) | ![GNN 1M](results/1M_test_accuracy.png) |
-| **Test Loss** | ![MLP 1M](results/1M_test_loss.png) | ![GNN 1M](results/1M_test_loss.png) |
+| Metric | Training | Test |
+|--------|----------|----------|
+| **Loss** | ![Train Loss](results/1M_train_loss.png) | ![Test Loss](results/1M_test_loss.png) |
+| **Accuracy** | ![Train Accuracy](results/1M_train_accuracy.png) | ![Test Accuracy](results/1M_test_accuracy.png) |
 
 Each plot shows the performance of **GNN vs. MLP** models. The baseline accuracy is marked for reference.
