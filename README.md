@@ -7,14 +7,14 @@ You need `conda` (or `mamba`) to be installed. Then to set up the `gnn-gm` envir
 ```shell
 conda env create -f environment.yml
 conda activate gnn-gm
-``` 
+```
 
 If `environment.yml` file is modified, just run the following command to update it:
 
 ```shell
 conda activate gnn-gm
 conda env update --file environment.yml --prune
-```  
+```
 You can also use pip with the `requirements.txt` file.
 
 ## Generating Dataset
@@ -121,3 +121,37 @@ import numpy as np
 stats = np.load('stats.npz')
 print(stats['train_loss'])
 ```
+
+## Results
+
+This section provides a comparative analysis of training and evaluation metrics for MLP and GNN models across different dataset sizes (10k, 100k, and 1M positions). The plots illustrate accuracy and loss trends over 10 epochs. The data was split with a train-test ratio of 0.9. The baseline accuracy is derived from a naive model that estimates player performance based on the total value of their remaining chess pieces.
+
+
+### 10k Dataset
+
+| Metric | MLP (10k) | GNN (10k) |
+|--------|----------|----------|
+| **Training Accuracy** | ![MLP 10k](results/10k_train_accuracy.png) | ![GNN 10k](results/10k_train_accuracy.png) |
+| **Training Loss** | ![MLP 10k](results/10k_train_loss.png) | ![GNN 10k](results/10k_train_loss.png) |
+| **Test Accuracy** | ![MLP 10k](results/10k_test_accuracy.png) | ![GNN 10k](results/10k_test_accuracy.png) |
+| **Test Loss** | ![MLP 10k](results/10k_test_loss.png) | ![GNN 10k](results/10k_test_loss.png) |
+
+### 100k Dataset
+
+| Metric | MLP (100k) | GNN (100k) |
+|--------|-----------|-----------|
+| **Training Accuracy** | ![MLP 100k](results/100k_train_accuracy.png) | ![GNN 100k](results/100k_train_accuracy.png) |
+| **Training Loss** | ![MLP 100k](results/100k_train_loss.png) | ![GNN 100k](results/100k_train_loss.png) |
+| **Test Accuracy** | ![MLP 100k](results/100k_test_accuracy.png) | ![GNN 100k](results/100k_test_accuracy.png) |
+| **Test Loss** | ![MLP 100k](results/100k_test_loss.png) | ![GNN 100k](results/100k_test_loss.png) |
+
+### 1M Dataset
+
+| Metric | MLP (1M) | GNN (1M) |
+|--------|---------|---------|
+| **Training Accuracy** | ![MLP 1M](results/1M_train_accuracy.png) | ![GNN 1M](results/1M_train_accuracy.png) |
+| **Training Loss** | ![MLP 1M](results/1M_train_loss.png) | ![GNN 1M](results/1M_train_loss.png) |
+| **Test Accuracy** | ![MLP 1M](results/1M_test_accuracy.png) | ![GNN 1M](results/1M_test_accuracy.png) |
+| **Test Loss** | ![MLP 1M](results/1M_test_loss.png) | ![GNN 1M](results/1M_test_loss.png) |
+
+Each plot shows the performance of **GNN vs. MLP** models. The baseline accuracy is marked for reference.
