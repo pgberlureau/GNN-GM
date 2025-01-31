@@ -126,6 +126,7 @@ print(stats['train_loss'])
 
 This section provides a comparative analysis of training and evaluation metrics for MLP and GNN models across different dataset sizes (10k, 100k, and 1M positions). The plots illustrate accuracy and loss trends over 10 epochs. The data was split with a train-test ratio of 0.9. The baseline accuracy is derived from a naive model that estimates player performance based on the total value of their remaining chess pieces.
 
+Each plot shows the performance of **GNN vs. MLP** models. The baseline accuracy is marked for reference.
 
 ### 10k Dataset
 
@@ -148,5 +149,3 @@ This section provides a comparative analysis of training and evaluation metrics 
 |--------|----------|----------|
 | **Loss** | ![Train Loss](results/1M_train_loss.png) | ![Test Loss](results/1M_test_loss.png) |
 | **Accuracy** | ![Train Accuracy](results/1M_train_accuracy.png) | ![Test Accuracy](results/1M_test_accuracy.png) |
-
-Each plot shows the performance of **GNN vs. MLP** models. The baseline accuracy is marked for reference.
