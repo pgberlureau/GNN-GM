@@ -1,5 +1,7 @@
 # GNN-GM
 
+Group project for the Deep-Learning course at ENS-PSL (2024/2025).
+
 ## Installation
 
 You need `conda` (or `mamba`) to be installed. Then to set up the `gnn-gm` environment :
